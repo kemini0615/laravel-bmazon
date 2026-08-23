@@ -10,8 +10,13 @@
 - [x] `database/migrations/0001_01_01_000000_create_users_table.php`에 `user_type` 추가
 - [x] `resources/views/auth/register.blade.php` 작성
 - [x] `resources/views/auth/login.blade.php` 작성
+- [x] `resources/views/auth/forgot-password.blade.php` 작성
+- [x] `resources/views/auth/reset-password.blade.php` 작성
 - [x] `lang/ko/validation.php` 추가
 - [x] `lang/ko/auth.php` 추가
+- [x] `lang/ko/passwords.php` 추가
+- [x] `app/Http/Controllers/Auth/PasswordResetLinkController.php` 작성
+- [x] `app/Http/Controllers/Auth/NewPasswordController.php` 작성
 - [ ] 비밀번호 재설정과 이메일 인증 Controller 구현
 - [ ] 인증 뷰 구현
 - [ ] 인증 테스트와 동작 검증

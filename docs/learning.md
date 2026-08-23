@@ -99,3 +99,20 @@
   조회하므로, 코드에서 `__('validation.required')`를 직접 호출할 필요는 없다.
 - `:attribute`, `:max`, `:min`은 Laravel이 필드명과 검증 규칙 값으로 바꾸는 치환
   문자열이다. `attributes` 배열은 영어 필드명을 사람이 읽을 한국어 필드명으로 바꾼다.
+
+## Password Broker
+
+- Password Broker는 비밀번호 재설정 토큰 생성·저장·만료 확인·알림 전송을 처리하는
+  Laravel 기능이다.
+- `Password::sendResetLink($request->only('email'))`는 `['email' => '...']` 형태의
+  배열을 받아 해당 이메일 사용자에게 재설정 링크를 보낸다.
+- 결과는 `passwords.sent`, `passwords.user`, `passwords.throttled` 같은 상태 키다.
+  `__($status)`는 이를 `lang/ko/passwords.php`의 한국어 메시지로 변환한다.
+- `Password::reset()`은 토큰과 이메일을 확인한 경우에만 전달한 콜백을 실행한다.
+  성공 상태 키는 `passwords.reset`이다.
+- `$request->route('token')`은 현재 요청 URL의 `{token}` 경로 파라미터를 읽는다.
+  비밀번호 재설정 폼은 이 값을 hidden input으로 다시 전송해 재설정 요청에 포함한다.
+- `forceFill()`은 `$fillable` 제한을 거치지 않고 속성을 채운다. 비밀번호 재설정처럼
+  인증 관련 필드를 명시적으로 갱신할 때 사용한다.
+- 새 `remember_token`을 만들면 이전 로그인 유지 쿠키는 더 이상 유효하지 않게 된다.
+- `PasswordReset`은 비밀번호 재설정 완료를 Listener에 알리는 Laravel 기본 인증 이벤트다.
