@@ -42,8 +42,66 @@
 - `Hash::make()`는 평문 비밀번호를 해시로 바꿔 데이터베이스에 저장한다.
 - `Registered`는 `Illuminate\Auth\Events\Registered`에 포함된 Laravel 기본 인증
   이벤트다. `event(new Registered($user))`는 회원가입 완료 사실을 Listener에 알린다.
-- 이메일 인증 알림은 User 모델이 `MustVerifyEmail`을 구현할 때 Laravel 기본 Listener가
-  전송한다. 현재 User 모델은 이를 구현하지 않았으므로 아직 인증 이메일은 전송되지 않는다.
+
+### 이메일 인증
+
+`MustVerifyEmail`이라는 이름은 같지만 namespace와 역할이 다른 두 대상이 있다.
+
+| 대상 | 종류 | 역할 |
+|---|---|---|
+| `Illuminate\Contracts\Auth\MustVerifyEmail` | interface | Laravel에 이메일 인증 대상 User임을 선언한다 |
+| `Illuminate\Auth\MustVerifyEmail` | trait | 이메일 인증에 필요한 실제 메서드를 제공한다 |
+
+- interface는 메서드 본문이 없는 PHP 선언이다. App User에
+  `implements MustVerifyEmail`를 적으면 다음 검사 결과가 `true`가 된다.
+
+  ```php
+  $user instanceof MustVerifyEmail
+  ```
+
+  Laravel의 기본 `Registered` Listener와 `verified` 미들웨어는 바로 이 검사 결과로
+  이메일 인증 기능을 적용할지 결정한다.
+
+  ```php
+  // 회원가입 뒤 기본 Listener의 판단
+  if ($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {
+      $user->sendEmailVerificationNotification();
+  }
+
+  // verified 미들웨어의 판단
+  if ($user instanceof MustVerifyEmail && ! $user->hasVerifiedEmail()) {
+      // verification.notice로 redirect
+  }
+  ```
+
+  interface를 구현하지 않으면 첫 조건이 `false`이므로, 자동 인증 메일을 보내지 않고
+  `verified` 미들웨어도 인증 여부를 검사하지 않은 채 다음 라우트로 통과시킨다.
+- trait은 `hasVerifiedEmail()`, `markEmailAsVerified()`,
+  `sendEmailVerificationNotification()`의 실제 코드를 제공한다. User의 부모 클래스인
+  `Illuminate\Foundation\Auth\User`가 이 trait을 사용하므로 User는 이 메서드를 상속받는다.
+- 따라서 trait으로부터 물려받은 메서드를 Controller에서 직접 호출하는 것은 interface 없이도
+  가능하다. 그러나 interface가 없으면 Laravel은 해당 User를 이메일 인증 대상으로 인식하지
+  않으므로 자동 발송과 `verified` 접근 제한을 적용하지 않는다.
+
+`MustVerifyEmail` interface를 구현한 User는 회원가입부터 보호 라우트 접근까지 다음 흐름이 연결된다.
+
+```text
+회원가입
+→ Registered 이벤트
+→ Laravel 기본 Listener가 MustVerifyEmail 구현 User인지 확인
+→ 인증 이메일 자동 발송
+
+미인증 사용자가 verified 라우트 접근
+→ verified 미들웨어가 MustVerifyEmail 구현 여부와 email_verified_at 확인
+→ 미인증이면 verification.notice 라우트로 이동
+```
+
+- `EmailVerificationRequest`는 이메일 인증 링크에서 현재 사용자 ID와 `{id}`, 현재 이메일의
+  SHA-1 해시와 `{hash}`가 일치하는지 확인하는 Form Request다.
+- 라우트의 `signed` 미들웨어는 링크의 서명과 만료 여부를 확인한다.
+- `sendEmailVerificationNotification()`은 현재 사용자에게 서명된 이메일 인증 링크를 전송한다.
+- `markEmailAsVerified()`는 `email_verified_at`에 현재 시각을 저장한다. `Verified` 이벤트는
+  이 인증 완료 사실을 Listener에 알린다.
 - Migration은 데이터베이스 구조 변경을 코드로 기록한다. `users.user_type`은
   `buyer`, `seller`만 허용하는 enum이고 기본값은 `buyer`다.
 - `Rules\Password::defaults()`는 애플리케이션의 기본 비밀번호 규칙을 적용한다.

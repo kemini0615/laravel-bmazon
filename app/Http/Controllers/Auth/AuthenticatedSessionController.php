@@ -33,8 +33,8 @@ class AuthenticatedSessionController extends Controller
             return redirect()->intended(route('seller.dashboard', absolute: false));
         }
 
-        // Buyer도 같은 방식으로 dashboard라는 이름의 라우트 URL로 이동한다
-        return redirect()->intended(route('dashboard', absolute: false));
+        // Buyer도 같은 방식으로 buyer.dashboard라는 이름의 라우트 URL로 이동한다
+        return redirect()->intended(route('buyer.dashboard', absolute: false));
     }
 
     // 1. web guard에서 현재 사용자를 로그아웃시킨다

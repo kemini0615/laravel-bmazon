@@ -2,14 +2,14 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-// Authenticatable을 상속하면 Laravel의 기본 인증 시스템이 이 모델을 로그인 사용자로 사용할 수 있다
-class User extends Authenticatable
+// MustVerifyEmail interface는 Laravel이 이 User의 인증 상태를 자동 메일 발송과 verified 접근 제한에 사용하게 한다
+class User extends Authenticatable implements MustVerifyEmail
 {
     // $fillable은 User::create() 같은 대량 할당에서 저장을 허용할 필드를 지정한다
     // 요청값 전체가 임의의 컬럼을 덮어쓰지 못하도록 허용 목록을 명시한다

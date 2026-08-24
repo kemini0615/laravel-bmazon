@@ -45,7 +45,7 @@ class RegisteredUserController extends Controller
         ]);
 
         // event()는 Registered 이벤트를 dispatch해 이 이벤트를 구독하는 Listener가 실행될 수 있게 한다
-        // 현재 User는 MustVerifyEmail을 구현하지 않았으므로 기본 Listener가 이메일 인증 알림을 보내지는 않는다
+        // User가 MustVerifyEmail을 구현하므로 Laravel 기본 Listener가 이메일 인증 알림을 전송한다
         event(new Registered($user));
 
         // Auth::login()은 방금 생성한 사용자를 즉시 로그인 상태로 만든다
@@ -55,6 +55,6 @@ class RegisteredUserController extends Controller
             return redirect(route('seller.dashboard', absolute: false));
         }
 
-        return redirect(route('dashboard', absolute: false));
+        return redirect(route('buyer.dashboard', absolute: false));
     }
 }

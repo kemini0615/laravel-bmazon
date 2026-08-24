@@ -1,9 +1,17 @@
 <?php
 
+use App\Http\Controllers\User\Buyer\DashboardController as BuyerDashboardController;
+use App\Http\Controllers\User\Seller\DashboardController as SellerDashboardController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+// 1. auth 미들웨어로 로그인한 사용자만 대시보드에 접근하게 한다
+// 2. 각 Controller가 user_type을 확인해 Buyer와 Seller 대시보드를 구분한다
+Route::middleware('auth')->group(function () {
+    Route::get('/dashboard', [BuyerDashboardController::class, 'index'])
+        ->name('buyer.dashboard');
+
+    Route::get('/seller/dashboard', [SellerDashboardController::class, 'index'])
+        ->name('seller.dashboard');
 });
 
 // 1. 별도 파일에 작성한 인증 라우트 목록을 불러온다

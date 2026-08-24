@@ -42,13 +42,14 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     // Invokable Controller는 __invoke() 메서드 하나를 실행하는 Controller 연결 방식이다
     // 이메일 인증 안내 화면을 단일 동작 Controller에 연결한다
-    // Route::get('verify-email', EmailVerificationPromptController::class)
-    //     ->name('verification.notice');
+    Route::get('verify-email', EmailVerificationPromptController::class)
+        ->name('verification.notice');
 
-    // signed 미들웨어는 URL 서명을 확인하고, throttle은 인증 링크 요청 횟수를 제한한다
-    // Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-    //     ->middleware(['signed', 'throttle:6,1'])
-    //     ->name('verification.verify');
+    // 'signed'는 Laravel이 만든 URL 서명이 현재 URL과 일치하고 만료되지 않았는지 확인해 변조된 인증 링크를 차단한다
+    // 'throttle:6,1'은 같은 요청자가 1분에 6회만 접근하게 해 인증 링크 엔드포인트의 반복 요청을 제한한다
+    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
+        ->middleware(['signed', 'throttle:6,1',])
+        ->name('verification.verify');
 
     Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
         ->middleware('throttle:6,1')
