@@ -5,8 +5,10 @@ use App\Http\Controllers\User\Seller\DashboardController as SellerDashboardContr
 use Illuminate\Support\Facades\Route;
 
 // 1. auth 미들웨어로 로그인한 사용자만 대시보드에 접근하게 한다
-// 2. 각 Controller가 user_type을 확인해 Buyer와 Seller 대시보드를 구분한다
-Route::middleware('auth')->group(function () {
+// 2. verified 미들웨어로 email_verified_at이 있는 사용자만 대시보드에 접근하게 한다
+// 3. 미인증 사용자는 verification.notice 라우트로 이동해 이메일 인증을 완료하게 한다
+// 4. 각 Controller가 user_type을 확인해 Buyer와 Seller 대시보드를 구분한다
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [BuyerDashboardController::class, 'index'])
         ->name('buyer.dashboard');
 

@@ -138,6 +138,15 @@
 - `back()`은 이전 URL로 redirect하는 응답을 만들고, `with('status', $value)`는
   상태 메시지를 다음 요청까지 세션 플래시에 저장한다.
 
+## 비밀번호 재확인
+
+- `Auth::guard('web')->validate($credentials)`는 입력한 인증 정보만 검증하고 새 로그인
+  세션을 만들지 않는다. 이미 로그인한 사용자가 민감한 작업 전에 현재 비밀번호를 다시
+  확인할 때 사용한다.
+- 확인에 성공하면 `auth.password_confirmed_at` 세션 키에 Unix timestamp를 저장한다.
+  `password.confirm` 미들웨어는 이 시각과 현재 시각의 차이가 설정된 유효 시간을 넘었는지
+  계산하고, 넘었다면 `password.confirm` 라우트로 redirect한다.
+
 ## Laravel 번역
 
 - `__($key)`와 `trans($key)`는 번역 키에 맞는 현재 locale의 문장을 반환한다.
