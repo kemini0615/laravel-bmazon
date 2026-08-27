@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -38,5 +39,19 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // 1. seller_id가 현재 User id인 Store 한 건을 찾는다
+    // 2. stores.seller_id가 unique이므로 한 User와 한 Store의 HasOne 관계를 반환한다
+    public function store(): HasOne
+    {
+        return $this->hasOne(Store::class, 'seller_id');
+    }
+
+    // 1. 현재 User의 Store를 거쳐 그 Store가 보유한 Product들을 찾는다
+    // 2. users → stores → products의 두 단계를 한 관계로 조회하기 위해 HasManyThrough를 사용한다
+    public function products(): HasManyThrough
+    {
+        return $this->hasManyThrough(Product::class, Store::class, 'seller_id', 'store_id', 'id', 'id');
     }
 }
