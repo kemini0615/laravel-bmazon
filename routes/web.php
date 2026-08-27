@@ -1,8 +1,14 @@
 <?php
 
 use App\Http\Controllers\User\Buyer\DashboardController as BuyerDashboardController;
+use App\Http\Controllers\User\HomeController;
 use App\Http\Controllers\User\Seller\DashboardController as SellerDashboardController;
 use Illuminate\Support\Facades\Route;
+
+// 1. 브라우저의 GET / 요청을 User HomeController의 index 메서드에 전달한다
+// 2. home.index 이름을 부여해 Blade와 Controller에서 URL 문자열 대신 이름으로 홈 링크를 생성하게 한다
+// Route Facade는 URL과 Controller 동작을 연결하는 Laravel 라우팅 기능이다
+Route::get('/', [HomeController::class, 'index'])->name('home.index');
 
 // 1. auth 미들웨어로 로그인한 사용자만 대시보드에 접근하게 한다
 // 2. verified 미들웨어로 email_verified_at이 있는 사용자만 대시보드에 접근하게 한다

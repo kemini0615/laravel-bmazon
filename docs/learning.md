@@ -183,3 +183,117 @@
   인증 관련 필드를 명시적으로 갱신할 때 사용한다.
 - 새 `remember_token`을 만들면 이전 로그인 유지 쿠키는 더 이상 유효하지 않게 된다.
 - `PasswordReset`은 비밀번호 재설정 완료를 Listener에 알리는 Laravel 기본 인증 이벤트다.
+
+## Migration과 Eloquent 관계
+
+- Migration은 PHP 코드로 테이블·컬럼·외래 키를 만들고 변경하는 파일이다. `Schema::create('products', function (Blueprint $table) { ... })`의 콜백 안에서 `$table`로 컬럼을 정의한다.
+- `$table->foreignId('store_id')`는 `store_id` unsigned BIGINT 컬럼만 만든다. 메서드 이름에 `foreign`이 포함되지만, `foreignId()`만으로는 데이터베이스 외래 키 제약이 생성되지 않는다.
+- 이어지는 `constrained()`가 참조 테이블의 `id`를 가리키는 실제 외래 키 제약을 추가한다. 인자를 생략하면 `store_id`에서 `stores`를 추론하고, `constrained('categories')`처럼 인자를 전달하면 참조 테이블을 직접 지정한다.
+- `nullable()`은 NULL을 허용한다. 예를 들어 최상위 카테고리는 부모가 없으므로 `parent_id`가 NULL일 수 있다.
+- `parent_id`는 이름만으로 `parents` 테이블을 추론하므로, 같은 `categories` 테이블을 가리키게 하려면 `constrained('categories')`처럼 테이블명을 지정한다.
+
+```php
+$table->foreignId('parent_id')
+    ->nullable()
+    ->constrained('categories');
+```
+
+- `cascadeOnDelete()`는 참조 대상 행을 실제 DELETE할 때 연결된 행도 함께 DELETE한다. `nullOnDelete()`는 연결된 행을 남기고 외래 키 값만 NULL로 바꾼다.
+- Eloquent 관계 메서드는 모델 사이를 조회하는 쿼리 규칙이다. 외래 키 제약을 만드는 문법이 아니므로 Migration에도 따로 외래 키를 작성해야 한다.
+
+```php
+// 현재 Category의 parent_id로 부모 Category 한 건을 조회한다
+public function parent(): BelongsTo
+{
+    return $this->belongsTo(self::class, 'parent_id');
+}
+
+// 다른 Category 중 parent_id가 현재 Category의 id인 여러 건을 조회한다
+public function children(): HasMany
+{
+    return $this->hasMany(self::class, 'parent_id');
+}
+```
+
+- `belongsTo()`는 현재 모델에 외래 키가 있을 때 사용한다. 위 `parent()`에서는 현재 Category의 `parent_id`를 사용한다.
+- `hasOne()`과 `hasMany()`는 연결된 다른 테이블에 현재 모델을 가리키는 외래 키가 있을 때 사용한다. 결과가 한 건이면 `hasOne()`, 여러 건이면 `hasMany()`다.
+- `belongsToMany()`는 중간 테이블(pivot table)을 거치는 다대다 관계다. `Product::categories()`는 기본 규칙에 따라 `category_product`의 `product_id`, `category_id`를 사용한다.
+- `hasManyThrough()`는 중간 모델을 한 번 거치는 관계다. `User::products()`는 User → Store → Product 순서로 상품을 조회한다.
+- `$table->softDeletesDatetime()`는 `deleted_at` 컬럼을 만든다. 모델에서 `use SoftDeletes`를 선언하면 `delete()`는 행을 실제로 지우지 않고 `deleted_at`에 시각을 저장한다. 따라서 Soft Delete에는 `cascadeOnDelete()`가 실행되지 않는다.
+
+## Laravel 라우팅
+
+- `Route` Facade는 요청 URL과 그 요청을 처리할 로직을 연결하는 Laravel 라우팅 기능이다.
+- `Route::get('/', $action)`은 브라우저가 `/` URL에 GET 요청을 보냈을 때 실행할 처리 로직을 등록한다.
+- `->name('home.index')`는 라우트에 이름을 붙인다. 이후 URL을 직접 작성하지 않고 `route('home.index')`로 홈 URL을 생성할 수 있다.
+
+## Eloquent 대량 할당과 Attribute Casting
+
+- 모델의 `$guarded = []`는 Eloquent 대량 할당에서 막을 컬럼이 없다는 뜻이다. 요청 검증을 마친 설정 배열 전체를 모델에 저장할 때 사용할 수 있지만, 검증되지 않은 요청 전체를 전달하면 위험하므로 주의해야 한다.
+- `$casts = ['categories' => 'array']`는 데이터베이스 JSON 문자열을 읽을 때 PHP 배열로 변환하고, 배열을 저장할 때 다시 JSON으로 변환한다.
+
+## Eloquent Eager Loading과 관계 집계
+
+- `with('primaryImage')`는 Product를 조회할 때 대표 이미지 관계도 미리 가져오는 eager loading이다. 반복문에서 상품마다 관계 쿼리를 실행하는 N+1 문제를 방지한다.
+- `withCount('products')`는 `products` 관계의 모델 전체를 가져오지 않고 개수만 계산해 `{관계명}_count` 속성으로 추가한다. 따라서 Category에서는 `$category->products_count`로 연결 상품 수를 읽는다.
+
+```php
+$category = Category::withCount('products')->first();
+
+// Category 속성 예시
+// id: 1
+// name: "전자제품"
+// products_count: 25
+```
+
+- `withAvg('reviews', 'rating')`는 `reviews` 관계의 `rating` 평균을 계산해 `{관계명}_avg_{컬럼명}` 속성으로 추가한다. 따라서 Product에서는 `$product->reviews_avg_rating`으로 평균 평점을 읽는다. 리뷰가 없으면 이 값은 `null`이다.
+
+```php
+$product = Product::withAvg('reviews', 'rating')->first();
+
+// Product 속성 예시
+// id: 10
+// name: "키보드"
+// reviews_avg_rating: 4.5
+```
+
+- `with('products')`는 Product 모델들을 실제 관계 데이터로 가져오지만, `withCount('products')`는 개수만 가져온다. 목록 화면에서 상품 내용은 필요 없고 개수만 표시할 때 `withCount()`가 더 적합하다.
+- `withCount()`와 `withAvg()`는 각 모델마다 반복 쿼리를 실행하지 않고 집계값을 기본 조회에 포함하므로 N+1 문제를 피하면서 개수와 평균을 표시할 수 있다.
+
+## Eloquent 관계 조건
+
+- `whereHas('reviews')`는 `reviews` 관계가 하나 이상 존재하는 Product만 조회한다. 관계 모델을 가져오는 것이 아니라 관계의 존재 여부로 Product를 필터링한다.
+
+```php
+// 리뷰가 하나 이상 있는 상품만 조회한다
+$products = Product::whereHas('reviews')->get();
+```
+
+- 두 번째 인자로 콜백을 전달하면 관계가 존재하면서 콜백의 조건도 만족해야 한다. 아래 코드는 5점 리뷰가 최소 하나 있는 상품을 조회한다. 모든 리뷰가 5점이어야 한다는 뜻은 아니다.
+
+```php
+$products = Product::whereHas('reviews', function ($query) {
+    $query->where('rating', 5);
+})->get();
+```
+
+- `whereHas()`는 부모 모델을 관계 조건으로 필터링하고, `with()`는 관계 데이터를 실제로 가져온다. 필터링한 상품과 리뷰 데이터가 모두 필요하면 두 메서드를 함께 사용한다.
+
+```php
+$products = Product::with('reviews')
+    ->whereHas('reviews', function ($query) {
+        $query->where('rating', 5);
+    })
+    ->get();
+```
+
+- `whereHas('categories', $callback)`도 같은 원리로, 콜백 조건을 만족하는 Category가 하나 이상 연결된 Product만 조회한다.
+
+## Eloquent 동적 Where
+
+- `whereIsFeatured(true)` 같은 Eloquent 동적 where는 메서드 이름의 `IsFeatured`를 `is_featured` 컬럼으로 변환해 조건을 적용한다.
+
+## Query Builder 결과 제한과 정렬
+
+- `get()` 전에 사용하는 `take(15)`는 SQL의 `LIMIT 15`처럼 데이터베이스 조회 결과를 최대 15개로 제한하며, Query Builder의 `limit(15)`와 같은 역할을 한다.
+- `latest()`는 기본적으로 `created_at`을 내림차순 정렬해 최근 생성된 행부터 조회한다.
