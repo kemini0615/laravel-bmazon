@@ -17,8 +17,14 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
-        watch: {
-            ignored: ['**/storage/framework/views/**'],
+        // watch: {
+        //     ignored: ['**/storage/framework/views/**'],
+        // },
+        host: '0.0.0.0', // 모든 IP 주소(컨테이너 외부)에서 접근 가능
+        port: 5173,
+        strictPort: true,
+        hmr: {
+            host: 'localhost', // 브라우저가 HMR(핫리로드) 연결할 때 사용할 주소
         },
     },
 });
