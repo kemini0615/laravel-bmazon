@@ -232,6 +232,14 @@ public function children(): HasMany
 - 모델의 `$guarded = []`는 Eloquent 대량 할당에서 막을 컬럼이 없다는 뜻이다. 요청 검증을 마친 설정 배열 전체를 모델에 저장할 때 사용할 수 있지만, 검증되지 않은 요청 전체를 전달하면 위험하므로 주의해야 한다.
 - `$casts = ['categories' => 'array']`는 데이터베이스 JSON 문자열을 읽을 때 PHP 배열로 변환하고, 배열을 저장할 때 다시 JSON으로 변환한다.
 
+## Database Seeder와 updateOrCreate
+
+- Seeder는 개발·학습·테스트에 필요한 초기 데이터를 코드로 반복 생성하는 Laravel 기능이다. 기본 `DatabaseSeeder::run()`은 `php artisan db:seed` 실행 시 호출된다.
+- `WithoutModelEvents` Trait은 Seeder 실행 중 Eloquent 모델 이벤트와 연결된 Listener가 실행되지 않게 한다. 초기 데이터 생성 과정에서 알림 같은 부수 효과를 방지할 때 사용한다.
+- `updateOrCreate($conditions, $values)`는 첫 번째 배열 조건과 일치하는 모델이 있으면 두 번째 배열 값으로 갱신하고, 없으면 두 배열을 합친 값으로 새 모델을 만든다. 이메일을 조건으로 사용하면 Seeder를 여러 번 실행해도 같은 계정이 중복 생성되지 않는다.
+- User 모델의 `'password' => 'hashed'` cast는 Seeder가 전달한 평문 비밀번호도 저장 전에 자동으로 해시한다.
+- `forceFill()`은 모델의 `$fillable` 제한을 우회해 속성을 채운다. 이번 Seeder에서는 외부 요청값이 아니라 코드에 명시한 `email_verified_at`을 인증 완료 상태로 저장하기 위해 사용한다.
+
 ## Eloquent Eager Loading과 관계 집계
 
 - `with('primaryImage')`는 Product를 조회할 때 대표 이미지 관계도 미리 가져오는 eager loading이다. 반복문에서 상품마다 관계 쿼리를 실행하는 N+1 문제를 방지한다.
